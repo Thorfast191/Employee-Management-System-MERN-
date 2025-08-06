@@ -28,6 +28,7 @@ app.use(cookieParser());
 
 // Mount routers
 app.use("/api/v1/auth", require("./routes/authRoute"));
+app.use("/api/v1/admin", require("./routes/adminRoutes.js"));
 app.use("/api/v1/employees", require("./routes/employeeRoute"));
 app.use("/api/v1/work", require("./routes/workRoute"));
 

@@ -1,50 +1,46 @@
 const express = require("express");
 const router = express.Router();
-const adminController = require("../controllers/adminController");
+const {
+  registerEmployee,
+  getAllEmployees,
+  getEmployeeDetails,
+  completeEmployeeSetup,
+  getPendingEmployees,
+  deleteEmployee,
+} = require("../controllers/adminController");
 const { protect, authorize } = require("../middlewares/auth");
 
 // Employee management routes
-router.get(
-  "/employees",
-  protect,
-  authorize("admin"),
-  adminController.getAllEmployees
-);
-router.put(
-  "/employees/:id/setup",
-  protect,
-  authorize("admin"),
-  adminController.completeEmployeeSetup
-);
 router.post(
-  "/employees/:id/schedule",
+  "/register/employees",
   protect,
   authorize("admin"),
-  adminController.assignDefaultSchedule
+  registerEmployee
 );
-router.put(
-  "/employees/:id/status",
-  protect,
-  authorize("admin"),
-  adminController.updateEmployeeStatus
-);
-router.put(
-  "/employees/:id/payment",
-  protect,
-  authorize("admin"),
-  adminController.updateEmployeePayment
-);
+router.get("/get-all/employees", protect, authorize("admin"), getAllEmployees);
 router.get(
   "/employees/pending",
   protect,
   authorize("admin"),
-  adminController.getPendingEmployees
+  getPendingEmployees
 );
 router.get(
-  "/employees/:id",
+  "/get/employees/:id",
   protect,
   authorize("admin"),
-  adminController.getEmployeeDetails
+  getEmployeeDetails
+);
+router.put(
+  "/employees/setup/:id",
+  protect,
+  authorize("admin"),
+  completeEmployeeSetup
+);
+router.delete(
+  "/delete/employees/:id",
+  protect,
+  authorize("admin"),
+  deleteEmployee
 );
 
 module.exports = router;
