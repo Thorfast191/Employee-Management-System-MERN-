@@ -3,26 +3,38 @@ const User = require("../models/userModel.js");
 const ErrorResponse = require("../utils/errorResponse.js");
 const asyncHandler = require("./asyncHandler.js");
 
-// Protect routes - user must be authenticated
 exports.protect = asyncHandler(async (req, res, next) => {
   let token;
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
+  console.log("Headers:", req.headers.authorization); // Debug
+  console.log("Cookies:", req.cookies); // Debug
+
+  // Get token from header or cookie
+  if (req.headers.authorization?.startsWith("Bearer")) {
     token = req.headers.authorization.split(" ")[1];
+    console.log("Token from header:", token); // Debug
+  } else if (req.cookies?.token) {
+    token = req.cookies.token;
+    console.log("Token from cookie:", token); // Debug
   }
 
   if (!token) {
-    return next(new ErrorResponse("Not authorized to access this route", 401));
+    console.log("No token found"); // Debug
+    return next(new ErrorResponse("Not authorized", 401));
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id);
+    req.user = await User.findById(decoded.id).select("-password");
+
+    if (!req.user) {
+      console.log("User not found in DB"); // Debug
+      return next(new ErrorResponse("No user found", 401));
+    }
+
     next();
   } catch (err) {
+    console.log("Token verification failed:", err.message); // Debug
     return next(new ErrorResponse("Not authorized", 401));
   }
 });

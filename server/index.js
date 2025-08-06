@@ -5,6 +5,7 @@ const colors = require("colors");
 const errorHandler = require("./middlewares/error.js");
 const connectDB = require("./config/db.js");
 const logger = require("./utils/logger.js");
+const cookieParser = require("cookie-parser");
 
 // Load env vars
 dotenv.config();
@@ -22,6 +23,8 @@ app.use(express.json());
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
+
+app.use(cookieParser());
 
 // Mount routers
 app.use("/api/v1/auth", require("./routes/authRoute"));

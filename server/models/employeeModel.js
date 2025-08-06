@@ -1,5 +1,17 @@
 const mongoose = require("mongoose");
 
+const PaymentSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ["hourly", "daily"],
+    required: true,
+  },
+  amount: {
+    type: Number,
+    required: true,
+  },
+});
+
 const EmployeeSchema = new mongoose.Schema(
   {
     name: {
@@ -25,12 +37,16 @@ const EmployeeSchema = new mongoose.Schema(
     },
     workHours: {
       type: Number,
-      default: 8,
+      required: false, // Will be set by admin later
+    },
+    payment: {
+      type: PaymentSchema,
+      required: false, // Will be set by admin later
     },
     status: {
       type: String,
-      enum: ["active", "on-leave", "terminated"],
-      default: "active",
+      enum: ["pending", "active", "on-leave", "terminated"],
+      default: "pending", // Default to pending until admin activates
     },
   },
   {
