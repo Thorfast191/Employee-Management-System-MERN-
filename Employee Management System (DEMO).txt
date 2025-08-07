@@ -7,4 +7,4 @@ Feature Requirements:
 	Assign employee work, set time, duration per day, work etc.
 
 NEXT TASKS:
-	SETUP FRONTEND
+	SETUP FRONTEND [DONE]
