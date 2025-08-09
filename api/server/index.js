@@ -6,6 +6,7 @@ const errorHandler = require("./middlewares/error.js");
 const connectDB = require("./config/db.js");
 const logger = require("./utils/logger.js");
 const cookieParser = require("cookie-parser");
+const cors = require("cors"); // Add this line
 
 // Load env vars
 dotenv.config();
@@ -15,6 +16,17 @@ connectDB();
 
 // Create Express app
 const app = express();
+
+// Enable CORS
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:5173"],
+    credentials: true,
+    exposedHeaders: ["set-cookie"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
 
 // Body parser
 app.use(express.json());

@@ -86,12 +86,22 @@ exports.login = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findOne({ email }).select("+password");
+
   if (!user || !(await user.matchPassword(password))) {
     return next(new ErrorResponse("Invalid credentials", 401));
   }
 
-  logger.info(`User logged in: ${user.email}`);
-  sendTokenResponse(user, 200, res);
+  const token = user.getSignedJwtToken();
+
+  // Send both token and user data
+  sendTokenResponse(user, 200, res, {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    },
+  });
 });
 
 exports.getMe = asyncHandler(async (req, res, next) => {
