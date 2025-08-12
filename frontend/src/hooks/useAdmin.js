@@ -8,21 +8,32 @@ export const useAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState([]);
   const [workAssignments, setWorkAssignments] = useState([]);
+  const [pendingEmployees, setPendingEmployees] = useState([]);
 
   // Fetch all employees (admin only)
   const fetchEmployees = async () => {
     try {
-      const response = await api.get("/api/v1/admin/employees");
+      const response = await api.get("/admin/get-all/employees");
       setEmployees(response.data.data);
     } catch (error) {
       console.error("Error fetching employees:", error);
     }
   };
 
+  // Fetch pending employees
+  const fetchPendingEmployees = async () => {
+    try {
+      const response = await api.get("/admin/employees/pending");
+      setPendingEmployees(response.data.data);
+    } catch (error) {
+      console.error("Error fetching pending employees:", error);
+    }
+  };
+
   // Fetch work assignments (admin only)
   const fetchWorkAssignments = async () => {
     try {
-      const response = await api.get("/api/v1/admin/work-assignments");
+      const response = await api.get("/admin/work-assignments");
       setWorkAssignments(response.data.data);
     } catch (error) {
       console.error("Error fetching work assignments:", error);
@@ -32,7 +43,10 @@ export const useAdmin = () => {
   // Register new employee
   const registerEmployee = async (employeeData) => {
     try {
-      const response = await api.post("/api/v1/admin/employees", employeeData);
+      const response = await api.post(
+        "/admin/register/employees",
+        employeeData
+      );
       await fetchEmployees();
       return response.data;
     } catch (error) {
@@ -41,10 +55,21 @@ export const useAdmin = () => {
     }
   };
 
+  // Get employee details
+  const getEmployeeDetails = async (id) => {
+    try {
+      const response = await api.get(`/admin/get/employees/${id}`);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching employee details:", error);
+      throw error;
+    }
+  };
+
   // Delete employee
   const deleteEmployee = async (id) => {
     try {
-      await api.delete(`/api/v1/admin/employees/${id}`);
+      await api.delete(`/admin/delete/employees/${id}`);
       await fetchEmployees();
     } catch (error) {
       console.error("Error deleting employee:", error);
@@ -55,10 +80,7 @@ export const useAdmin = () => {
   // Complete employee setup
   const completeEmployeeSetup = async (id, setupData) => {
     try {
-      const response = await api.put(
-        `/api/v1/admin/employees/${id}/setup`,
-        setupData
-      );
+      const response = await api.put(`/admin/employees/setup/${id}`, setupData);
       await fetchEmployees();
       return response.data;
     } catch (error) {
@@ -75,6 +97,7 @@ export const useAdmin = () => {
       // Fetch data if admin
       if (user.role === "admin") {
         fetchEmployees();
+        fetchPendingEmployees();
         fetchWorkAssignments();
       }
     } else {
@@ -86,11 +109,14 @@ export const useAdmin = () => {
     isAdmin,
     loading,
     employees,
+    pendingEmployees,
     workAssignments,
     registerEmployee,
+    getEmployeeDetails,
     deleteEmployee,
     completeEmployeeSetup,
     fetchEmployees,
+    fetchPendingEmployees,
     fetchWorkAssignments,
   };
 };
