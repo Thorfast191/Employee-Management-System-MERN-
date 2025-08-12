@@ -1,23 +1,196 @@
-const asyncHandler = require("../middlewares/asyncHandler.js");
-const ErrorResponse = require("../utils/errorResponse.js");
-const User = require("../models/userModel.js");
-const Employee = require("../models/employeeModel.js");
-const logger = require("../utils/logger.js");
-const sendTokenResponse = require("../utils/tokenResponse.js");
+// const asyncHandler = require("../middlewares/asyncHandler.js");
+// const ErrorResponse = require("../utils/errorResponse.js");
+// const User = require("../models/userModel.js");
+// const Employee = require("../models/employeeModel.js");
+// const logger = require("../utils/logger.js");
+// const sendTokenResponse = require("../utils/tokenResponse.js");
 
-// @desc      Register admin (no Employee record)
+// // @desc      Register admin (no Employee record)
+// // @route     POST /api/v1/auth/register/admin
+// // @access    Public
+// exports.registerAdmin = asyncHandler(async (req, res, next) => {
+//   const { name, email, password } = req.body;
+
+//   // Check for existing admin
+//   const existingAdmin = await User.findOne({ email, role: "admin" });
+//   if (existingAdmin) {
+//     return next(new ErrorResponse("Admin already exists", 400));
+//   }
+
+//   // Create admin user (no Employee record)
+//   const admin = await User.create({
+//     name,
+//     email,
+//     password,
+//     role: "admin",
+//   });
+
+//   logger.info(`Admin created: ${admin.email}`);
+//   sendTokenResponse(admin, 201, res);
+// });
+
+// // @desc      Register employee (User + Employee record)
+// // @route     POST /api/v1/auth/register/employee
+// // @access    Public
+// exports.registerEmployee = asyncHandler(async (req, res, next) => {
+//   const { name, email, password, position, department } = req.body;
+
+//   // Validate required fields
+//   if (!name || !email || !password || !position || !department) {
+//     return next(
+//       new ErrorResponse(
+//         "Missing required fields (name, email, password, position, department)",
+//         400
+//       )
+//     );
+//   }
+
+//   // Check if user already exists
+//   const existingUser = await User.findOne({ email });
+//   if (existingUser) {
+//     return next(new ErrorResponse("User already exists", 400));
+//   }
+
+//   // Create the User (required for auth)
+//   const user = await User.create({
+//     name,
+//     email,
+//     password,
+//     role: "employee",
+//   });
+
+//   // Create the Employee (linked to User)
+//   const employee = await Employee.create({
+//     name,
+//     position,
+//     department,
+//     user: user._id,
+//     // hireDate is automatically set to now
+//     // workHours will be set by admin later
+//     // payment will be set by admin later
+//     // status defaults to "pending"
+//   });
+
+//   logger.info(`Employee registered (pending admin setup): ${user.email}`);
+//   sendTokenResponse(user, 201, res);
+// });
+
+// // @desc      Login user (works for both admins/employees)
+// // @route     POST /api/v1/auth/login
+// // @access    Public
+// exports.login = asyncHandler(async (req, res, next) => {
+//   const { email, password } = req.body;
+
+//   if (!email || !password) {
+//     return next(new ErrorResponse("Please provide an email and password", 400));
+//   }
+
+//   const user = await User.findOne({ email }).select("+password");
+
+//   if (!user || !(await user.matchPassword(password))) {
+//     return next(new ErrorResponse("Invalid credentials", 401));
+//   }
+
+//   const token = user.getSignedJwtToken();
+
+//   // Send both token and user data
+//   sendTokenResponse(user, 200, res, {
+//     user: {
+//       id: user._id,
+//       name: user.name,
+//       email: user.email,
+//       role: user.role,
+//     },
+//   });
+// });
+
+// exports.getMe = asyncHandler(async (req, res, next) => {
+//   // First verify req.user exists
+//   if (!req.user || !req.user._id) {
+//     return next(new ErrorResponse("User not authenticated", 401));
+//   }
+
+//   const user = await User.findById(req.user._id).select("-password");
+
+//   if (!user) {
+//     return next(new ErrorResponse("User not found", 404));
+//   }
+
+//   const response = {
+//     id: user._id,
+//     name: user.name,
+//     email: user.email,
+//     role: user.role,
+//   };
+
+//   if (user.role === "employee") {
+//     const employee = await Employee.findOne({ user: user._id });
+//     if (employee) {
+//       response.position = employee.position;
+//       response.department = employee.department;
+//       response.status = employee.status;
+//     }
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     data: response,
+//   });
+// });
+
+// // @desc      Logout user
+// // @route     GET /api/v1/auth/logout
+// // @access    Public (should be accessible without auth)
+// exports.logout = asyncHandler(async (req, res, next) => {
+//   // Clear the token cookie regardless of authentication state
+//   res.cookie("token", "none", {
+//     expires: new Date(Date.now() + 10 * 1000), // Expires in 10 seconds
+//     httpOnly: true,
+//   });
+
+//   // Optional: Log if user was authenticated
+//   if (req.user) {
+//     logger.info(`User logged out: ${req.user.email}`);
+//   } else {
+//     logger.info("Anonymous logout request processed");
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     message: "Logged out successfully",
+//   });
+// });
+
+const asyncHandler = require("../middlewares/asyncHandler");
+const ErrorResponse = require("../utils/errorResponse");
+const User = require("../models/userModel");
+const Employee = require("../models/employeeModel");
+const logger = require("../utils/logger");
+const sendTokenResponse = require("../utils/tokenResponse");
+
+// @desc      Register admin
 // @route     POST /api/v1/auth/register/admin
 // @access    Public
 exports.registerAdmin = asyncHandler(async (req, res, next) => {
   const { name, email, password } = req.body;
 
-  // Check for existing admin
-  const existingAdmin = await User.findOne({ email, role: "admin" });
-  if (existingAdmin) {
-    return next(new ErrorResponse("Admin already exists", 400));
+  if (!name || !email || !password) {
+    return next(
+      new ErrorResponse("Please provide name, email and password", 400, {
+        fields: ["name", "email", "password"],
+      })
+    );
   }
 
-  // Create admin user (no Employee record)
+  const existingAdmin = await User.findOne({ email, role: "admin" });
+  if (existingAdmin) {
+    return next(
+      new ErrorResponse("Admin with this email already exists", 400, {
+        email,
+      })
+    );
+  }
+
   const admin = await User.create({
     name,
     email,
@@ -26,32 +199,49 @@ exports.registerAdmin = asyncHandler(async (req, res, next) => {
   });
 
   logger.info(`Admin created: ${admin.email}`);
-  sendTokenResponse(admin, 201, res);
+
+  // Enhanced response structure
+  sendTokenResponse(admin, 201, res, {
+    data: {
+      user: {
+        id: admin._id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        createdAt: admin.createdAt,
+      },
+    },
+  });
 });
 
-// @desc      Register employee (User + Employee record)
+// @desc      Register employee
 // @route     POST /api/v1/auth/register/employee
 // @access    Public
 exports.registerEmployee = asyncHandler(async (req, res, next) => {
   const { name, email, password, position, department } = req.body;
 
-  // Validate required fields
-  if (!name || !email || !password || !position || !department) {
+  const requiredFields = { name, email, password, position, department };
+  const missingFields = Object.entries(requiredFields)
+    .filter(([_, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingFields.length > 0) {
     return next(
-      new ErrorResponse(
-        "Missing required fields (name, email, password, position, department)",
-        400
-      )
+      new ErrorResponse("Please provide all required fields", 400, {
+        missingFields,
+      })
     );
   }
 
-  // Check if user already exists
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    return next(new ErrorResponse("User already exists", 400));
+    return next(
+      new ErrorResponse("User with this email already exists", 400, {
+        email,
+      })
+    );
   }
 
-  // Create the User (required for auth)
   const user = await User.create({
     name,
     email,
@@ -59,30 +249,87 @@ exports.registerEmployee = asyncHandler(async (req, res, next) => {
     role: "employee",
   });
 
-  // Create the Employee (linked to User)
   const employee = await Employee.create({
     name,
     position,
     department,
     user: user._id,
-    // hireDate is automatically set to now
-    // workHours will be set by admin later
-    // payment will be set by admin later
-    // status defaults to "pending"
   });
 
   logger.info(`Employee registered (pending admin setup): ${user.email}`);
-  sendTokenResponse(user, 201, res);
+
+  // Enhanced response structure
+  sendTokenResponse(user, 201, res, {
+    data: {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+      },
+      employee: {
+        id: employee._id,
+        position: employee.position,
+        department: employee.department,
+        status: employee.status,
+        hireDate: employee.hireDate,
+      },
+    },
+  });
 });
 
-// @desc      Login user (works for both admins/employees)
+// // @desc      Login user
+// // @route     POST /api/v1/auth/login
+// // @access    Public
+// exports.login = asyncHandler(async (req, res, next) => {
+//   const { email, password } = req.body;
+
+//   if (!email || !password) {
+//     return next(
+//       new ErrorResponse("Please provide email and password", 400, {
+//         fields: ["email", "password"],
+//       })
+//     );
+//   }
+
+//   const user = await User.findOne({ email }).select("+password");
+
+//   if (!user || !(await user.matchPassword(password))) {
+//     return next(new ErrorResponse("Invalid credentials", 401));
+//   }
+
+//   // Enhanced response structure
+//   sendTokenResponse(user, 200, res, {
+//     data: {
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         email: user.email,
+//         role: user.role,
+//         createdAt: user.createdAt,
+//       },
+//       ...(user.role === "employee" && {
+//         employee: await Employee.findOne({ user: user._id })
+//           .select("position department status")
+//           .lean(),
+//       }),
+//     },
+//   });
+// });
+
+// @desc      Login user
 // @route     POST /api/v1/auth/login
 // @access    Public
 exports.login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return next(new ErrorResponse("Please provide an email and password", 400));
+    return next(
+      new ErrorResponse("Please provide email and password", 400, {
+        fields: ["email", "password"],
+      })
+    );
   }
 
   const user = await User.findOne({ email }).select("+password");
@@ -91,72 +338,76 @@ exports.login = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("Invalid credentials", 401));
   }
 
-  const token = user.getSignedJwtToken();
-
-  // Send both token and user data
-  sendTokenResponse(user, 200, res, {
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
+  // ✅ Only send necessary info for login
+  return sendTokenResponse(user, 200, res, {
+    data: {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+      },
     },
   });
 });
 
+// @desc      Get current user
+// @route     GET /api/v1/auth/me
+// @access    Private
 exports.getMe = asyncHandler(async (req, res, next) => {
-  // First verify req.user exists
   if (!req.user || !req.user._id) {
     return next(new ErrorResponse("User not authenticated", 401));
   }
 
   const user = await User.findById(req.user._id).select("-password");
-
   if (!user) {
     return next(new ErrorResponse("User not found", 404));
   }
 
   const response = {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
+    data: {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+      },
+    },
   };
 
   if (user.role === "employee") {
-    const employee = await Employee.findOne({ user: user._id });
+    const employee = await Employee.findOne({ user: user._id }).select(
+      "position department status workHours workSchedule payment"
+    );
     if (employee) {
-      response.position = employee.position;
-      response.department = employee.department;
-      response.status = employee.status;
+      response.data.employee = employee;
     }
   }
 
   res.status(200).json({
     success: true,
-    data: response,
+    ...response,
   });
 });
 
 // @desc      Logout user
 // @route     GET /api/v1/auth/logout
-// @access    Public (should be accessible without auth)
+// @access    Public
 exports.logout = asyncHandler(async (req, res, next) => {
-  // Clear the token cookie regardless of authentication state
   res.cookie("token", "none", {
-    expires: new Date(Date.now() + 10 * 1000), // Expires in 10 seconds
+    expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
   });
 
-  // Optional: Log if user was authenticated
   if (req.user) {
     logger.info(`User logged out: ${req.user.email}`);
-  } else {
-    logger.info("Anonymous logout request processed");
   }
 
   res.status(200).json({
     success: true,
+    data: null,
     message: "Logged out successfully",
   });
 });

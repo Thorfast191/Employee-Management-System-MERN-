@@ -31,8 +31,8 @@ export const useAuth = () => {
       } catch (error) {
         console.error("Auth check failed:", error);
         localStorage.removeItem("token");
-        // Optional: redirect to login if token is invalid
-        navigate("/login");
+        // // Optional: redirect to login if token is invalid
+        // navigate("/login");
       } finally {
         setLoading(false);
       }
@@ -44,6 +44,10 @@ export const useAuth = () => {
   const login = async (email, password) => {
     try {
       const response = await api.post("/auth/login", { email, password });
+
+      if (!response.data.success) {
+        throw new Error(response.data.error || "Login failed");
+      }
 
       // Handle both cookie and token responses
       if (response.data.token) {
@@ -59,12 +63,30 @@ export const useAuth = () => {
         throw new Error("No user data received");
       }
     } catch (error) {
+      console.error("Login API error:", error.response?.data || error);
       return {
         success: false,
-        error: error.response?.data?.error || "Login failed",
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Login failed",
       };
     }
   };
+
+  // const logout = async () => {
+  //   try {
+  //     await api.get("/auth/logout");
+  //   } catch (error) {
+  //     console.error("Logout error:", error);
+  //   } finally {
+  //     localStorage.removeItem("token");
+  //     setUser(null);
+  //     navigate("/login", { replace: true });
+  //   }
+  // };
+
+  // return { user, loading, login, logout };
 
   const logout = async () => {
     try {
@@ -72,11 +94,13 @@ export const useAuth = () => {
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
+      // Clear token and user state first
       localStorage.removeItem("token");
       setUser(null);
-      navigate("/login");
+
+      // Force a hard refresh to ensure clean state
+      window.location.href = "/login";
     }
   };
-
   return { user, loading, login, logout };
 };

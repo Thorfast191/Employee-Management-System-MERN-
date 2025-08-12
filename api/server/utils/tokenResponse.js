@@ -50,16 +50,7 @@ const sendTokenResponse = (user, statusCode, res) => {
       email: user.email,
       role: user.role,
     },
-  });
-  res.status(statusCode).json({
-    success: true,
-    token, // Only include this if using localStorage
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
+    // ...options,
   });
 };
 
